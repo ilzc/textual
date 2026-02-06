@@ -53,12 +53,27 @@ extension StructuredText {
           let columnRuns = rowContent.blockRuns(parent: rowRun.intent)
 
           GridRow {
-            ForEach(columnRuns.indices, id: \.self) { columnIndex in
-              let cellRun = columnRuns[columnIndex]
-              let cellContent = rowContent[cellRun.range]
+            let cellsByColumn: [Int: AttributedSubstring] = {
+              var result: [Int: AttributedSubstring] = [:]
+              for cellRun in columnRuns {
+                if case .tableCell(let colIdx) = cellRun.intent?.kind {
+                  result[colIdx] = rowContent[cellRun.range]
+                }
+              }
+              return result
+            }()
 
-              TableCell(cellContent, row: rowIndex, column: columnIndex)
-                .gridColumnAlignment(alignment(for: columnIndex))
+            ForEach(0..<columns.count, id: \.self) { columnIndex in
+              if let cellContent = cellsByColumn[columnIndex] {
+                TableCell(cellContent, row: rowIndex, column: columnIndex)
+                  .gridColumnAlignment(alignment(for: columnIndex))
+              } else {
+                Color.clear
+                  .anchorPreference(key: TableCell.BoundsKey.self, value: .bounds) { anchor in
+                    [TableCell.Identifier(row: rowIndex, column: columnIndex): anchor]
+                  }
+                  .gridColumnAlignment(alignment(for: columnIndex))
+              }
             }
           }
         }

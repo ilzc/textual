@@ -207,8 +207,13 @@
     }
 
     func runSliceSelectionRect(at indexPath: IndexPath) -> CGRect {
+      guard indexPath.layout < layouts.count else { return .zero }
       let layout = layouts[indexPath.layout]
+      guard indexPath.line < layout.lines.count else { return .zero }
       let line = layout.lines[indexPath.line]
+      guard indexPath.run < line.runs.count,
+            indexPath.runSlice < line.runs[indexPath.run].slices.count
+      else { return .zero }
       let runSlice = line.runs[indexPath.run].slices[indexPath.runSlice]
 
       var rect = runSlice.typographicBounds
@@ -253,13 +258,20 @@
     }
 
     fileprivate func runSliceRect(at indexPath: IndexPath) -> CGRect {
+      guard indexPath.layout < layouts.count else { return .zero }
       let layout = layouts[indexPath.layout]
+      guard indexPath.line < layout.lines.count,
+            indexPath.run < layout.lines[indexPath.line].runs.count,
+            indexPath.runSlice < layout.lines[indexPath.line].runs[indexPath.run].slices.count
+      else { return .zero }
       let runSlice = layout.lines[indexPath.line].runs[indexPath.run].slices[indexPath.runSlice]
       return runSlice.typographicBounds.offsetBy(dx: layout.origin.x, dy: layout.origin.y)
     }
 
     fileprivate func lineRect(at indexPath: IndexPath) -> CGRect {
+      guard indexPath.layout < layouts.count else { return .zero }
       let layout = layouts[indexPath.layout]
+      guard indexPath.line < layout.lines.count else { return .zero }
       let line = layout.lines[indexPath.line]
       return line.typographicBounds.offsetBy(dx: layout.origin.x, dy: layout.origin.y)
     }

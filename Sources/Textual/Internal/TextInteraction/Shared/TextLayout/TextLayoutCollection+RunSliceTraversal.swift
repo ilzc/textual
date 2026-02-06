@@ -13,8 +13,11 @@
 
   extension TextLayoutCollection {
     fileprivate func indexPathForRunSlice(after indexPath: IndexPath) -> IndexPath? {
+      guard indexPath.layout < layouts.count else { return nil }
       let layout = layouts[indexPath.layout]
+      guard indexPath.line < layout.lines.count else { return nil }
       let line = layout.lines[indexPath.line]
+      guard indexPath.run < line.runs.count else { return nil }
       let run = line.runs[indexPath.run]
 
       if indexPath.runSlice + 1 < run.slices.count {
@@ -59,6 +62,10 @@
       }
 
       if indexPath.run > 0 {
+        guard indexPath.layout < layouts.count,
+              indexPath.line < layouts[indexPath.layout].lines.count,
+              indexPath.run - 1 < layouts[indexPath.layout].lines[indexPath.line].runs.count
+        else { return nil }
         let previousRun = layouts[indexPath.layout].lines[indexPath.line].runs[indexPath.run - 1]
         return IndexPath(
           runSlice: previousRun.slices.endIndex - 1,
@@ -69,7 +76,11 @@
       }
 
       if indexPath.line > 0 {
+        guard indexPath.layout < layouts.count,
+              indexPath.line - 1 < layouts[indexPath.layout].lines.count
+        else { return nil }
         let previousLine = layouts[indexPath.layout].lines[indexPath.line - 1]
+        guard !previousLine.runs.isEmpty else { return nil }
         let lastRunIndex = previousLine.runs.endIndex - 1
         let lastRun = previousLine.runs[lastRunIndex]
 
@@ -82,9 +93,12 @@
       }
 
       if indexPath.layout > 0 {
+        guard indexPath.layout - 1 < layouts.count else { return nil }
         let previousLayout = layouts[indexPath.layout - 1]
+        guard !previousLayout.lines.isEmpty else { return nil }
         let lastLineIndex = previousLayout.lines.endIndex - 1
         let lastLine = previousLayout.lines[lastLineIndex]
+        guard !lastLine.runs.isEmpty else { return nil }
         let lastRunIndex = lastLine.runs.endIndex - 1
         let lastRun = lastLine.runs[lastRunIndex]
         return IndexPath(

@@ -75,14 +75,24 @@
     }
 
     func localCharacterRange(at indexPath: IndexPath) -> Range<Int> {
-      let line = layouts[indexPath.layout].lines[indexPath.line]
+      guard indexPath.layout < layouts.count else { return 0..<0 }
+      let layout = layouts[indexPath.layout]
+      guard indexPath.line < layout.lines.count else { return 0..<0 }
+      let line = layout.lines[indexPath.line]
+      guard indexPath.run < line.runs.count,
+            indexPath.runSlice < line.runs[indexPath.run].slices.count
+      else { return 0..<0 }
       return line.runs[indexPath.run]
         .slices[indexPath.runSlice]
         .characterRange
     }
 
     func layoutDirection(at indexPath: IndexPath) -> LayoutDirection {
-      let line = layouts[indexPath.layout].lines[indexPath.line]
+      guard indexPath.layout < layouts.count else { return .leftToRight }
+      let layout = layouts[indexPath.layout]
+      guard indexPath.line < layout.lines.count else { return .leftToRight }
+      let line = layout.lines[indexPath.line]
+      guard indexPath.run < line.runs.count else { return .leftToRight }
       return line.runs[indexPath.run].layoutDirection
     }
 
@@ -94,6 +104,7 @@
         )
       }
 
+      guard layoutIndex < layouts.count else { return nil }
       let layout = layouts[layoutIndex]
       let stringLength = layout.attributedString.length
 

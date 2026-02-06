@@ -2,18 +2,32 @@
   import SwiftUI
 
   final class LiveTextLayoutCollection: TextLayoutCollection {
-    private(set) lazy var layouts: [any TextLayout] = makeLayouts()
+    // Resolve layouts eagerly so that GeometryProxy anchor resolution happens
+    // while the proxy is still valid inside its GeometryReader body scope.
+    // This prevents stale origins when the layout collection is queried later.
+    let layouts: [any TextLayout]
 
     private let base: Text.LayoutKey.Value
-    private let geometry: GeometryProxy
 
     init(base: Text.LayoutKey.Value, geometry: GeometryProxy) {
       self.base = base
-      self.geometry = geometry
+      self.layouts = base
+        .filter(\.layout.isTextFragment)
+        .map { anchoredLayout in
+          LiveTextLayout(
+            anchoredLayout: anchoredLayout,
+            geometry: geometry
+          )
+        }
     }
 
     func isEqual(to other: any TextLayoutCollection) -> Bool {
-      base == (other as? LiveTextLayoutCollection)?.base
+      guard let other = other as? LiveTextLayoutCollection else { return false }
+      guard base == other.base else { return false }
+      // Also compare origins so the model picks up geometry changes
+      // (e.g. when the view settles after initial layout inside a ScrollView)
+      guard layouts.count == other.layouts.count else { return false }
+      return zip(layouts, other.layouts).allSatisfy { $0.origin == $1.origin }
     }
 
     func needsPositionReconciliation(with other: any TextLayoutCollection) -> Bool {
@@ -25,18 +39,6 @@
       layouts.firstIndex { textLayout in
         (textLayout as? LiveTextLayout)?.base == layout
       }
-    }
-
-    private func makeLayouts() -> [any TextLayout] {
-      base
-        // We are only interested in text fragments
-        .filter(\.layout.isTextFragment)
-        .map { anchoredLayout in
-          LiveTextLayout(
-            anchoredLayout: anchoredLayout,
-            geometry: geometry
-          )
-        }
     }
   }
 

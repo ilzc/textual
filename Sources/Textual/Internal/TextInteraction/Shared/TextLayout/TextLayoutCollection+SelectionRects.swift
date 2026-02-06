@@ -159,7 +159,8 @@
         }
 
         if let previousMaxY {
-          let lineMinY = self[line].first!.rect.minY
+          guard let firstRect = self[line].first else { continue }
+          let lineMinY = firstRect.rect.minY
           if lineMinY > previousMaxY {
             let gap = lineMinY - previousMaxY
             for span in self[line].indices {
