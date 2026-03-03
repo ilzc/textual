@@ -50,3 +50,4 @@ extension StructuredText.HeadingStyle where Self == StructuredText.DefaultHeadin
   .padding()
   .textual.textSelection(.enabled)
 }
+

@@ -9,7 +9,10 @@ extension StructuredText {
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
+      // fixedSize(horizontal:) 确保 AnyView 向后续修饰器正确报告内容宽度，
+      // 而不是报告被压缩后的屏幕宽，避免 overlay Canvas 按错误宽度绘制分隔线。
       configuration.label
+        .fixedSize(horizontal: true, vertical: false)
         .overlay {
           Canvas { context, _ in
             for divider in configuration.layout.dividers() {
@@ -41,11 +44,11 @@ extension StructuredText.TableStyle where Self == StructuredText.DefaultTableSty
     markdown: """
       The sky above the port was the color of television, tuned to a dead channel.
 
-      Sloth speed  | Description                          
-      ------------ | ------------------------------------- 
-      `slow`       | Moves slightly faster than a snail  
-      `medium`     | Moves at an average speed           
-      `fast`       | Moves faster than a hare            
+      Sloth speed  | Description
+      ------------ | -------------------------------------
+      `slow`       | Moves slightly faster than a snail
+      `medium`     | Moves at an average speed
+      `fast`       | Moves faster than a hare
       `supersonic` | Moves faster than the speed of sound
 
       It was a bright cold day in April, and the clocks were striking thirteen.

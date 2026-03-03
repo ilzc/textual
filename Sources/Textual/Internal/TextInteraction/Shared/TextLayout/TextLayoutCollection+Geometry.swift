@@ -53,7 +53,7 @@
     func closestPosition(to point: CGPoint) -> TextPosition? {
       guard !layouts.isEmpty else { return nil }
 
-      let layoutIndex = layoutIndex(closestToY: point.y)
+      let layoutIndex = layoutIndex(closestTo: point)
       let layout = layouts[layoutIndex]
 
       guard !layout.lines.isEmpty else { return nil }
@@ -93,7 +93,7 @@
     func characterRange(at point: CGPoint) -> TextRange? {
       guard !layouts.isEmpty else { return nil }
 
-      let layoutIndex = layoutIndex(closestToY: point.y)
+      let layoutIndex = layoutIndex(closestTo: point)
       let layout = layouts[layoutIndex]
 
       guard !layout.lines.isEmpty else { return nil }
@@ -274,6 +274,25 @@
       guard indexPath.line < layout.lines.count else { return .zero }
       let line = layout.lines[indexPath.line]
       return line.typographicBounds.offsetBy(dx: layout.origin.x, dy: layout.origin.y)
+    }
+
+    // 2D 搜索：主条件最小垂直距离，次条件（垂直距离相等时）最小水平距离。
+    // 对于表格等多列布局，同一行的多个 layout 具有相同 Y 坐标，
+    // 用水平距离作为次级判断可以正确定位到用户点击的列。
+    fileprivate func layoutIndex(closestTo point: CGPoint) -> Int {
+      var closestIndex = 0
+      var closestVDist = CGFloat.greatestFiniteMagnitude
+      var closestHDist = CGFloat.greatestFiniteMagnitude
+      for (index, layout) in zip(layouts.indices, layouts) {
+        let vDist = layout.frame.verticalDistance(to: point.y)
+        let hDist = layout.frame.horizontalDistance(to: point.x)
+        if vDist < closestVDist || (vDist == closestVDist && hDist < closestHDist) {
+          closestVDist = vDist
+          closestHDist = hDist
+          closestIndex = index
+        }
+      }
+      return closestIndex
     }
 
     fileprivate func layoutIndex(closestToY y: CGFloat) -> Int {
