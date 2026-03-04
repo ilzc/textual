@@ -30,6 +30,7 @@
       uiView.model = model
       uiView.exclusionRects = context.environment.overflowFrames
       uiView.openURL = context.environment.openURL
+      uiView.textSelectionActions = context.environment.textSelectionActions
     }
   }
 #endif

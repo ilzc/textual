@@ -21,12 +21,26 @@
     var exclusionRects: [CGRect]
     var openURL: OpenURLAction
 
+    /// 外部注入的自定义菜单项（最多 customActionSelectors.count 个）。
+    /// 赋值时自动同步 UIMenuController，标题和可见性均由注入方控制。
+    var textSelectionActions: [TextSelectionAction] = [] {
+      didSet { updateCustomMenuItems() }
+    }
+
     weak var inputDelegate: (any UITextInputDelegate)?
 
     let logger = Logger(category: .textInteraction)
 
     private(set) lazy var _tokenizer = UITextInputStringTokenizer(textInput: self)
     private let selectionInteraction: UITextInteraction
+
+    // 固定 selector 池：最多支持 3 个自定义操作。
+    // 之所以使用静态池而非动态 selector，是因为 Objective-C 不支持运行时创建方法。
+    private static let customActionSelectors: [Selector] = [
+      #selector(customAction0(_:)),
+      #selector(customAction1(_:)),
+      #selector(customAction2(_:)),
+    ]
 
     init(
       model: TextSelectionModel,
@@ -58,10 +72,18 @@
     }
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+      let hasSelection = !(model.selectedRange?.isCollapsed ?? true)
       switch action {
       case #selector(copy(_:)), #selector(share(_:)):
-        return !(model.selectedRange?.isCollapsed ?? true)
+        return hasSelection
       default:
+        // 自定义 action：检查 selector 是否在池中且对应 index 有已注入的操作
+        if hasSelection,
+           let index = Self.customActionSelectors.firstIndex(of: action),
+           index < textSelectionActions.count
+        {
+          return true
+        }
         return false
       }
     }
@@ -106,6 +128,36 @@
 
       addInteraction(selectionInteraction)
     }
+
+    /// 将当前 textSelectionActions 同步到 UIMenuController。
+    /// UIMenuController 在 iOS 16+ 已废弃但仍可用；canPerformAction 控制实际可见性。
+    private func updateCustomMenuItems() {
+      let items = zip(textSelectionActions, Self.customActionSelectors).map { action, selector in
+        UIMenuItem(title: action.title, action: selector)
+      }
+      UIMenuController.shared.menuItems = items
+    }
+
+    // MARK: - 自定义 action 响应（selector 池）
+
+    @objc private func customAction0(_ sender: Any?) { triggerCustomAction(at: 0) }
+    @objc private func customAction1(_ sender: Any?) { triggerCustomAction(at: 1) }
+    @objc private func customAction2(_ sender: Any?) { triggerCustomAction(at: 2) }
+
+    private func triggerCustomAction(at index: Int) {
+      guard let selectedRange = model.selectedRange,
+            index < textSelectionActions.count
+      else { return }
+
+      let attributedText = model.attributedText(in: selectedRange)
+      let text = Formatter(attributedText).plainText()
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !text.isEmpty else { return }
+
+      textSelectionActions[index](text)
+    }
+
+    // MARK: - 系统 action 响应
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
       let location = gesture.location(in: self)
